@@ -72,11 +72,25 @@ export function InputPanel() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        // Try to parse JSON error response, but handle HTML error pages gracefully
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON (e.g., HTML error page), use status text
+          errorMessage = `HTTP ${response.status}: ${response.statusText || 'Server error'}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      const { mermaid } = await response.json();
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        throw new Error('Invalid JSON response from server');
+      }
+      const { mermaid } = responseData;
 
       // Convert Mermaid to React Flow
       const { nodes, edges } = await mermaidToReactFlow(mermaid);
