@@ -139,8 +139,17 @@ export async function mermaidToReactFlow(mermaidCode: string): Promise<{ nodes: 
 
     // Try to parse with @mermaid-js/parser first
     try {
-      const diagram = await parse('flowchart', mermaidCode);
-      
+      // Use the correct diagram type as expected by @mermaid-js/parser, e.g., 'graph'
+      // parse expects at least 2 parameters: the code and the type of diagram
+      // Let's try to infer the diagram type from the first line, otherwise default to 'graph'
+      const typeMatch = /^\s*(\w+)/.exec(mermaidCode);
+      const diagramType = typeMatch && ["graph", "flowchart", "sequenceDiagram", "classDiagram", "stateDiagram", "erDiagram", "journey", "gantt", "pie", "requirementDiagram", "gitGraph", "mindmap", "timeline", "xychart", "zenuml", "quadrantChart", "block"].includes(typeMatch[1])
+        ? typeMatch[1]
+        : 'graph';
+      // parse expects a diagram type literal, but unfortunately types are limited in the parser typings.
+      // @ts-expect-error - we need to pass the type string here as required by the parser runtime
+      const diagram = await parse(mermaidCode, diagramType);
+
       // Attempt to extract from AST
       const traverse = (obj: any) => {
         if (typeof obj !== 'object' || obj === null) return;
