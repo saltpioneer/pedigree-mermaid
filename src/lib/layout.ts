@@ -1,8 +1,14 @@
+import { Position } from 'reactflow';
 import { layoutFromMap } from 'entitree-flex';
 import type { Node, Edge } from '../state/useFlowStore';
 
 const nodeWidth = 150;
-const nodeHeight = 80;
+const nodeHeight = 36;
+
+const Orientation = {
+  Vertical: 'vertical',
+  Horizontal: 'horizontal',
+};
 
 export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'TB'): Node[] {
   if (nodes.length === 0) {
@@ -69,30 +75,59 @@ export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
     return nodes;
   }
 
-  // Apply entitree-flex layout
-  const settings = {
-    orientation: direction === 'TB' ? 'vertical' : 'horizontal',
-    nodeWidth: nodeWidth,
-    nodeHeight: nodeHeight,
-    firstDegreeSpacing: 50,
+  // Apply entitree-flex layout with settings from layout-element.txt
+  const entitreeSettings = {
+    clone: true,
+    enableFlex: true,
+    firstDegreeSpacing: 100,
+    nextAfterAccessor: 'spouses',
+    nextAfterSpacing: 100,
+    nextBeforeAccessor: 'siblings',
+    nextBeforeSpacing: 100,
+    nodeHeight,
+    nodeWidth,
+    orientation: direction === 'TB' ? Orientation.Vertical : Orientation.Horizontal,
+    rootX: 0,
+    rootY: 0,
     secondDegreeSpacing: 100,
-    sourceTargetSpacing: 80,
+    sourcesAccessor: 'parents',
+    sourceTargetSpacing: 100,
+    targetsAccessor: 'children',
   };
 
   try {
-    const result = layoutFromMap(rootId, flatTree, settings);
+    const result = layoutFromMap(rootId, flatTree, entitreeSettings);
     
     // Convert entitree-flex output back to React Flow format
     const layoutedNodes = nodes.map((node) => {
       const entitreeNode = result.map[node.id];
       if (entitreeNode && entitreeNode.x !== undefined && entitreeNode.y !== undefined) {
-        return {
+        const newNode = {
           ...node,
           position: {
             x: entitreeNode.x - nodeWidth / 2,
             y: entitreeNode.y - nodeHeight / 2,
           },
         };
+
+        // Set source/target positions based on node type (from layout-element.txt)
+        const isSpouse = !!entitreeNode?.isSpouse;
+        const isSibling = !!entitreeNode?.isSibling;
+        const isTreeHorizontal = direction === 'LR';
+        const { Top, Bottom, Left, Right } = Position;
+
+        if (isSpouse) {
+          newNode.sourcePosition = isTreeHorizontal ? Bottom : Right;
+          newNode.targetPosition = isTreeHorizontal ? Top : Left;
+        } else if (isSibling) {
+          newNode.sourcePosition = isTreeHorizontal ? Top : Left;
+          newNode.targetPosition = isTreeHorizontal ? Bottom : Right;
+        } else {
+          newNode.sourcePosition = isTreeHorizontal ? Right : Bottom;
+          newNode.targetPosition = isTreeHorizontal ? Left : Top;
+        }
+
+        return newNode;
       }
       // Fallback to original position if not found
       return node;

@@ -1,5 +1,15 @@
-import { useState } from 'react';
-import { useFlowStore } from '../state/useFlowStore';
+import { useState, useCallback } from 'react';
+import { 
+  Button, 
+  TextArea, 
+  Heading, 
+  Callout,
+  Tooltip,
+  Text,
+  Flex
+} from '@radix-ui/themes';
+import '@radix-ui/themes/styles.css';
+import { useFlowStore, type Node } from '../state/useFlowStore';
 import { mermaidToReactFlow } from '../lib/mermaidToReactFlow';
 import { validateInput, preprocessInput } from '../lib/parseFamilyPrompt';
 
@@ -7,7 +17,36 @@ export function InputPanel() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { setGraph } = useFlowStore();
+  const { setGraph, addNode, removeNode, selectedNodeId, nodes } = useFlowStore();
+
+  const handleAddNode = useCallback(() => {
+    // Calculate a default position - center of viewport or offset from existing nodes
+    let x = 400;
+    let y = 300;
+    
+    if (nodes.length > 0) {
+      // Position new node near the center of existing nodes
+      const avgX = nodes.reduce((sum, n) => sum + n.position.x, 0) / nodes.length;
+      const avgY = nodes.reduce((sum, n) => sum + n.position.y, 0) / nodes.length;
+      x = avgX + 200;
+      y = avgY;
+    }
+    
+    const newNodeId = `node-${Date.now()}`;
+    const newNode: Node = {
+      id: newNodeId,
+      data: { label: 'New Node' },
+      position: { x, y },
+      type: 'default',
+    };
+    addNode(newNode);
+  }, [addNode, nodes]);
+
+  const handleRemoveNode = useCallback(() => {
+    if (selectedNodeId) {
+      removeNode(selectedNodeId);
+    }
+  }, [selectedNodeId, removeNode]);
 
   const handleConvert = async () => {
     setError(null);
@@ -53,49 +92,76 @@ export function InputPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Input Family Tree Text</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-          Describe family relationships in natural language
-        </p>
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
+      <div className="p-5">
+        <Flex direction="column" gap="4">
+          <Heading size="4">Input Family Tree Text</Heading>
+          <Flex gap="3">
+            <Tooltip content="Add a new node to the graph">
+              <Button
+                onClick={handleAddNode}
+                variant="soft"
+                size="2"
+                style={{ flex: 1 }}
+              >
+                Add Node
+              </Button>
+            </Tooltip>
+            <Tooltip content="Remove the selected node">
+              <Button
+                onClick={handleRemoveNode}
+                disabled={!selectedNodeId}
+                variant="solid"
+                color="red"
+                size="2"
+                style={{ flex: 1 }}
+              >
+                Remove Node
+              </Button>
+            </Tooltip>
+          </Flex>
+          <Text size="2" color="gray">
+            Describe family relationships in natural language
+          </Text>
+        </Flex>
       </div>
-      
-      <div className="flex-1 p-4 overflow-auto">
-        <textarea
+
+      <div className="p-5 flex-1 overflow-auto border-t border-gray-200">
+        <TextArea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Example:&#10;John and Mary have a daughter Sarah. Sarah married Tim. They have two sons, Alex and Ben."
-          className="w-full h-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg 
-                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white 
-                     placeholder-gray-500 dark:placeholder-gray-400
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                     resize-none"
+          style={{ width: '100%', height: '100%', resize: 'none' }}
           disabled={loading}
+          size="3"
+          variant="surface"
         />
       </div>
 
       {error && (
-        <div className="px-4 pb-2">
-          <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded">
-            <strong className="font-bold">Error: </strong>
-            <span className="block sm:inline">{error}</span>
+        <>
+          <div className="p-5 border-t border-gray-200">
+            <Callout.Root color="red" variant="soft">
+              <Callout.Text>
+                <Text weight="medium">Error: </Text>
+                {error}
+              </Callout.Text>
+            </Callout.Root>
           </div>
-        </div>
+        </>
       )}
 
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-        <button
+      <div className="p-5 border-t border-gray-200">
+        <Button
           onClick={handleConvert}
           disabled={loading || !text.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed 
-                     text-white font-semibold py-3 px-4 rounded-lg 
-                     transition-colors duration-200
-                     flex items-center justify-center gap-2"
+          size="3"
+          variant="classic"
+          style={{ width: '100%' }}
         >
           {loading ? (
             <>
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -104,7 +170,7 @@ export function InputPanel() {
           ) : (
             <span>Convert to Family Tree</span>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

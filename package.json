@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@mermaid-js/parser": "^0.6.3",
+    "@radix-ui/themes": "^3.2.1",
     "cors": "^2.8.5",
     "dagre": "^0.8.5",
     "dotenv": "^17.2.3",

@@ -1,8 +1,151 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-weight: 400;
 }
+
+.react-flow {
+  --xy-background-color: #f7f9fb;
+  /* Custom Variables - Cyan Theme */
+  --xy-theme-selected: #05a2c2;
+  --xy-theme-hover: #c5c5c5;
+  --xy-theme-edge-hover: #05a2c2;
+  --xy-theme-color-focus: #e5f9fc;
+
+  /* Built-in Variables see https://reactflow.dev/learn/customization/theming */
+  --xy-node-border-default: 1px solid #ededed;
+
+  --xy-node-boxshadow-default:
+    0px 3.54px 4.55px 0px #00000005, 0px 3.54px 4.55px 0px #0000000d,
+    0px 0.51px 1.01px 0px #0000001a;
+
+  --xy-node-border-radius-default: 12px;
+
+  --xy-handle-background-color-default: #ffffff;
+  --xy-handle-border-color-default: #aaaaaa;
+
+  --xy-edge-label-color-default: #505050;
+}
+
+/* Customizing Default Theming */
+
+.react-flow__node {
+  box-shadow: var(--xy-node-boxshadow-default);
+  border-radius: var(--xy-node-border-radius-default);
+  background-color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 10px;
+  font-size: 12px;
+  flex-direction: column;
+  border: 1px solid #ededed;
+  color: var(--xy-node-color, #333333);
+}
+
+.react-flow__node-default {
+  box-shadow: var(--xy-node-boxshadow-default);
+  border-radius: var(--xy-node-border-radius-default);
+  background-color: #ffffff;
+  border: var(--xy-node-border-default);
+  color: #333333;
+}
+
+.react-flow__node.selectable:focus {
+  box-shadow: 0px 0px 0px 4px var(--xy-theme-color-focus);
+  border-color: #d9d9d9;
+}
+
+.react-flow__node.selectable:focus:active {
+  box-shadow: var(--xy-node-boxshadow-default);
+}
+ 
+.react-flow__node.selectable:hover,
+.react-flow__node.draggable:hover {
+  border-color: var(--xy-theme-hover);
+}
+ 
+.react-flow__node.selectable.selected {
+  border-color: var(--xy-theme-selected);
+  box-shadow: var(--xy-node-boxshadow-default);
+}
+ 
+.react-flow__node-group {
+  background-color: rgba(207, 182, 255, 0.4);
+  border-color: #9e86ed;
+}
+ 
+.react-flow__edge.selectable:hover .react-flow__edge-path,
+.react-flow__edge.selectable.selected .react-flow__edge-path {
+  stroke: var(--xy-theme-edge-hover);
+}
+ 
+.react-flow__handle {
+  background-color: var(--xy-handle-background-color-default);
+}
+ 
+.react-flow__handle.connectionindicator:hover {
+  pointer-events: all;
+  border-color: var(--xy-theme-edge-hover);
+  background-color: white;
+}
+ 
+.react-flow__handle.connectionindicator:focus,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+  border-color: var(--xy-theme-edge-hover);
+}
+ 
+.react-flow__node-resizer {
+  border-radius: 0;
+  border: none;
+}
+ 
+.react-flow__resize-control.handle {
+  background-color: #ffffff;
+  border-color: #9e86ed;
+  border-radius: 0;
+  width: 5px;
+  height: 5px;
+}
+
+.react-flow__handle.connectionindicator:hover {
+  pointer-events: all;
+  border-color: var(--xy-theme-edge-hover);
+  background-color: white;
+}
+
+.react-flow__handle.connectionindicator:focus,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+  border-color: var(--xy-theme-edge-hover);
+}
+
+.react-flow__node-resizer {
+  border-radius: 0;
+  border: none;
+}
+
+.react-flow__resize-control.handle {
+  background-color: #ffffff;
+  border-color: #9e86ed;
+  border-radius: 0;
+  width: 5px;
+  height: 5px;
+}
+
+:root {
+  --color-primary: #05a2c2;
+  --color-background: #fefefe;
+  --color-hover-bg: #f6f6f6;
+  --color-disabled: #76797e;
+}
+
+/* Custom theme classes removed - using Radix UI Themes instead */
