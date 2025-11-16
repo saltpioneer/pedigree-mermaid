@@ -1,41 +1,114 @@
-import dagre from 'dagre';
+import { layoutFromMap } from 'entitree-flex';
 import type { Node, Edge } from '../state/useFlowStore';
 
 const nodeWidth = 150;
 const nodeHeight = 80;
 
-export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'LR'): Node[] {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ 
-    rankdir: direction,
-    nodesep: 50,
-    ranksep: 100,
-    marginx: 50,
-    marginy: 50,
-  });
+export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'TB'): Node[] {
+  if (nodes.length === 0) {
+    return nodes;
+  }
 
+  // Build relationship maps from edges
+  const childrenMap = new Map<string, string[]>();
+  const parentsMap = new Map<string, string[]>();
+
+  // Initialize maps
   nodes.forEach((node) => {
-    g.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    childrenMap.set(node.id, []);
+    parentsMap.set(node.id, []);
   });
 
+  // Build parent-child relationships directly from edges
+  // No marriage nodes - edges directly connect parents to children
   edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target);
+    // Direct parent-child relationship: parent --> child
+    const currentChildren = childrenMap.get(edge.source) || [];
+    if (!currentChildren.includes(edge.target)) {
+      childrenMap.set(edge.source, [...currentChildren, edge.target]);
+    }
+    const currentParents = parentsMap.get(edge.target) || [];
+    if (!currentParents.includes(edge.source)) {
+      parentsMap.set(edge.target, [...currentParents, edge.source]);
+    }
   });
 
-  dagre.layout(g);
-
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = g.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - nodeWidth / 2,
-        y: nodeWithPosition.y - nodeHeight / 2,
-      },
+  // Convert to entitree-flex format (flat map)
+  // All nodes are individuals - no marriage nodes to filter
+  const flatTree: Record<string, any> = {};
+  
+  nodes.forEach((node) => {
+    const children = childrenMap.get(node.id) || [];
+    const parents = parentsMap.get(node.id) || [];
+    
+    flatTree[node.id] = {
+      name: node.data?.label || node.id,
+      width: nodeWidth,
+      height: nodeHeight,
+      children: children.length > 0 ? children : undefined,
+      parents: parents.length > 0 ? parents : undefined,
     };
   });
 
-  return layoutedNodes;
+  // Find root node (node with no parents)
+  let rootId: string | null = null;
+  for (const node of nodes) {
+    const parents = parentsMap.get(node.id) || [];
+    if (parents.length === 0) {
+      rootId = node.id;
+      break;
+    }
+  }
+  
+  // Fallback to first node if all have parents (in case of circular references)
+  if (!rootId) {
+    rootId = nodes[0]?.id || null;
+  }
+  
+  if (!rootId) {
+    return nodes;
+  }
+
+  // Apply entitree-flex layout
+  const settings = {
+    orientation: direction === 'TB' ? 'vertical' : 'horizontal',
+    nodeWidth: nodeWidth,
+    nodeHeight: nodeHeight,
+    firstDegreeSpacing: 50,
+    secondDegreeSpacing: 100,
+    sourceTargetSpacing: 80,
+  };
+
+  try {
+    const result = layoutFromMap(rootId, flatTree, settings);
+    
+    // Convert entitree-flex output back to React Flow format
+    const layoutedNodes = nodes.map((node) => {
+      const entitreeNode = result.map[node.id];
+      if (entitreeNode && entitreeNode.x !== undefined && entitreeNode.y !== undefined) {
+        return {
+          ...node,
+          position: {
+            x: entitreeNode.x - nodeWidth / 2,
+            y: entitreeNode.y - nodeHeight / 2,
+          },
+        };
+      }
+      // Fallback to original position if not found
+      return node;
+    });
+    
+    return layoutedNodes;
+  } catch (error) {
+    console.error('Error applying entitree-flex layout:', error);
+    // Fallback to simple layout if entitree-flex fails
+    return nodes.map((node, index) => ({
+      ...node,
+      position: {
+        x: (index % 5) * 200,
+        y: Math.floor(index / 5) * 150,
+      },
+    }));
+  }
 }
 

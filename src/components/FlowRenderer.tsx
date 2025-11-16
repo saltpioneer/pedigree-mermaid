@@ -22,7 +22,8 @@ function LayoutButton() {
 
   const handleLayout = useCallback(() => {
     const nodes = getNodes();
-    const edges = getEdges();
+    // Cast edges to Edge[] to satisfy applyLayout's type requirement.
+    const edges = getEdges() as Edge[];
     const layoutedNodes = applyLayout(nodes, edges);
 
     layoutedNodes.forEach((node) => {
@@ -46,7 +47,7 @@ function LayoutButton() {
 }
 
 function FlowRendererInner({ onNodeSelect }: FlowRendererProps) {
-  const { nodes, edges, setSelectedNode, updateNodePosition } = useFlowStore();
+  const { nodes, edges, setSelectedNode, updateNodePosition, addEdge } = useFlowStore();
   const { setNodes: setReactFlowNodes, setEdges: setReactFlowEdges } = useReactFlow();
 
   const onNodesChange = useCallback(
@@ -75,8 +76,15 @@ function FlowRendererInner({ onNodeSelect }: FlowRendererProps) {
   }, []);
 
   const onConnect = useCallback((params: any) => {
-    // Handle new connections if needed
-  }, []);
+    // Create a new edge when user connects two nodes
+    const newEdge: Edge = {
+      id: `${params.source}-${params.target}-${Date.now()}`,
+      source: params.source,
+      target: params.target,
+      type: 'smoothstep',
+    };
+    addEdge(newEdge);
+  }, [addEdge]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);

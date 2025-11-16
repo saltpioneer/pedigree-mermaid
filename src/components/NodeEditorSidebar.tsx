@@ -79,6 +79,21 @@ export function NodeEditorSidebar({ selectedNodeId }: NodeEditorSidebarProps) {
     setSelectedNode(childId);
   };
 
+  const handleAddNode = () => {
+    const newNodeId = `node-${Date.now()}`;
+    const newNode: Node = {
+      id: newNodeId,
+      data: { label: 'New Node' },
+      position: {
+        x: selectedNode.position.x + 200,
+        y: selectedNode.position.y,
+      },
+      type: 'default',
+    };
+    addNode(newNode);
+    setSelectedNode(newNodeId);
+  };
+
   const connectedEdges = edges.filter(
     (e) => e.source === selectedNode.id || e.target === selectedNode.id
   );
@@ -136,6 +151,13 @@ export function NodeEditorSidebar({ selectedNodeId }: NodeEditorSidebarProps) {
 
       <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
         <button
+          onClick={handleAddNode}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded transition-colors"
+        >
+          Add Node
+        </button>
+        
+        <button
           onClick={handleAddChild}
           className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition-colors"
         >
@@ -153,7 +175,7 @@ export function NodeEditorSidebar({ selectedNodeId }: NodeEditorSidebarProps) {
           onClick={handleDelete}
           className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition-colors"
         >
-          Delete Node
+          Remove Node
         </button>
       </div>
     </div>

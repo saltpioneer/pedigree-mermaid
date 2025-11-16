@@ -65,9 +65,21 @@ export const useFlowStore = create<FlowStore>((set) => ({
     })),
 
   addEdge: (edge) =>
-    set((state) => ({
-      edges: [...state.edges, edge],
-    })),
+    set((state) => {
+      // Check for duplicate edges
+      const edgeKey = `${edge.source}-${edge.target}`;
+      const isDuplicate = state.edges.some(
+        (e) => `${e.source}-${e.target}` === edgeKey
+      );
+      
+      if (isDuplicate) {
+        return state; // Don't add duplicate edges
+      }
+      
+      return {
+        edges: [...state.edges, edge],
+      };
+    }),
 
   removeEdge: (id) =>
     set((state) => ({

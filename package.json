@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "dagre": "^0.8.5",
     "dotenv": "^17.2.3",
+    "entitree-flex": "^0.4.1",
     "express": "^5.1.0",
     "html2canvas": "^1.4.1",
     "openai": "^6.9.0",

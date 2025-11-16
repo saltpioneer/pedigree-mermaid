@@ -20,6 +20,9 @@ function parseMermaidText(mermaidCode: string): { nodes: MermaidNode[]; edges: M
   const nodeSet = new Set<string>();
   const nodeMap = new Map<string, MermaidNode>();
 
+  // Log the Mermaid code for debugging
+  console.log('Parsing Mermaid code:', mermaidCode);
+
   // Remove flowchart declaration and comments
   const lines = mermaidCode
     .split('\n')
@@ -27,65 +30,104 @@ function parseMermaidText(mermaidCode: string): { nodes: MermaidNode[]; edges: M
     .filter(line => line && !line.startsWith('%%'));
 
   lines.forEach((line) => {
-    // Extract node IDs and labels from edges and node definitions
-    // Pattern: A --> B or A[Label1] --> B[Label2]
-    const edgeMatch = line.match(/(\w+)(?:\[([^\]]+)\])?\s*-->\s*(\w+)(?:\[([^\]]+)\])?/);
-    if (edgeMatch) {
-      const [, sourceId, sourceLabel, targetId, targetLabel] = edgeMatch;
+    // Handle multiple edges on one line with & syntax: A --> M1 & B --> M1
+    // Split by & first, then process each edge
+    const edgeParts = line.split('&').map(part => part.trim());
+    
+    edgeParts.forEach((edgePart) => {
+      // Pattern: A --> B or A[Label1] --> B[Label2] or A --> M1 --> C (chained)
+      // First, try to match simple edge: A --> B
+      let edgeMatch = edgePart.match(/^(\w+)(?:\[([^\]]+)\])?\s*-->\s*(\w+)(?:\[([^\]]+)\])?/);
+      
+      if (edgeMatch) {
+        const [, sourceId, sourceLabel, targetId, targetLabel] = edgeMatch;
 
-      // Add source node if not exists
-      if (!nodeSet.has(sourceId)) {
-        const node: MermaidNode = {
-          id: sourceId,
-          label: sourceLabel || sourceId,
-        };
-        mermaidNodes.push(node);
-        nodeSet.add(sourceId);
-        nodeMap.set(sourceId, node);
-      } else if (sourceLabel && nodeMap.has(sourceId)) {
-        // Update label if provided and node exists
-        nodeMap.get(sourceId)!.label = sourceLabel;
-      }
-
-      // Add target node if not exists
-      if (!nodeSet.has(targetId)) {
-        const node: MermaidNode = {
-          id: targetId,
-          label: targetLabel || targetId,
-        };
-        mermaidNodes.push(node);
-        nodeSet.add(targetId);
-        nodeMap.set(targetId, node);
-      } else if (targetLabel && nodeMap.has(targetId)) {
-        // Update label if provided and node exists
-        nodeMap.get(targetId)!.label = targetLabel;
-      }
-
-      // Add edge
-      mermaidEdges.push({
-        start: sourceId,
-        end: targetId,
-        label: undefined,
-      });
-    } else {
-      // Try to match standalone node definitions: A[Label]
-      const nodeMatch = line.match(/^(\w+)(?:\[([^\]]+)\])/);
-      if (nodeMatch) {
-        const [, nodeId, label] = nodeMatch;
-        if (!nodeSet.has(nodeId)) {
+        // Add source node if not exists
+        if (!nodeSet.has(sourceId)) {
           const node: MermaidNode = {
-            id: nodeId,
-            label: label || nodeId,
+            id: sourceId,
+            label: sourceLabel || sourceId,
           };
           mermaidNodes.push(node);
-          nodeSet.add(nodeId);
-          nodeMap.set(nodeId, node);
-        } else if (label && nodeMap.has(nodeId)) {
-          nodeMap.get(nodeId)!.label = label;
+          nodeSet.add(sourceId);
+          nodeMap.set(sourceId, node);
+        } else if (sourceLabel && nodeMap.has(sourceId)) {
+          // Update label if provided and node exists
+          nodeMap.get(sourceId)!.label = sourceLabel;
+        }
+
+        // Add target node if not exists
+        if (!nodeSet.has(targetId)) {
+          const node: MermaidNode = {
+            id: targetId,
+            label: targetLabel || targetId,
+          };
+          mermaidNodes.push(node);
+          nodeSet.add(targetId);
+          nodeMap.set(targetId, node);
+        } else if (targetLabel && nodeMap.has(targetId)) {
+          // Update label if provided and node exists
+          nodeMap.get(targetId)!.label = targetLabel;
+        }
+
+        // Add edge
+        mermaidEdges.push({
+          start: sourceId,
+          end: targetId,
+          label: undefined,
+        });
+
+        // Check for chained edges: A --> M1 --> C
+        const remaining = edgePart.substring(edgeMatch[0].length).trim();
+        if (remaining.startsWith('-->')) {
+          const chainedMatch = remaining.match(/-->\s*(\w+)(?:\[([^\]]+)\])?/);
+          if (chainedMatch) {
+            const [, chainedTargetId, chainedTargetLabel] = chainedMatch;
+            
+            // Add chained target node if not exists
+            if (!nodeSet.has(chainedTargetId)) {
+              const node: MermaidNode = {
+                id: chainedTargetId,
+                label: chainedTargetLabel || chainedTargetId,
+              };
+              mermaidNodes.push(node);
+              nodeSet.add(chainedTargetId);
+              nodeMap.set(chainedTargetId, node);
+            } else if (chainedTargetLabel && nodeMap.has(chainedTargetId)) {
+              nodeMap.get(chainedTargetId)!.label = chainedTargetLabel;
+            }
+
+            // Add chained edge
+            mermaidEdges.push({
+              start: targetId,
+              end: chainedTargetId,
+              label: undefined,
+            });
+          }
+        }
+      } else {
+        // Try to match standalone node definitions: A[Label]
+        const nodeMatch = edgePart.match(/^(\w+)(?:\[([^\]]+)\])/);
+        if (nodeMatch) {
+          const [, nodeId, label] = nodeMatch;
+          if (!nodeSet.has(nodeId)) {
+            const node: MermaidNode = {
+              id: nodeId,
+              label: label || nodeId,
+            };
+            mermaidNodes.push(node);
+            nodeSet.add(nodeId);
+            nodeMap.set(nodeId, node);
+          } else if (label && nodeMap.has(nodeId)) {
+            nodeMap.get(nodeId)!.label = label;
+          }
         }
       }
-    }
+    });
   });
+
+  console.log('Parsed nodes:', mermaidNodes);
+  console.log('Parsed edges:', mermaidEdges);
 
   return { nodes: mermaidNodes, edges: mermaidEdges };
 }
@@ -158,6 +200,35 @@ export async function mermaidToReactFlow(mermaidCode: string): Promise<{ nodes: 
       }
     }
 
+    // Filter out any marriage-related nodes - pedigree charts don't use marriage nodes
+    // Remove M1, M2, M3 nodes (marriage nodes), literal "marriage"/"married" nodes
+    // BUT ALLOW placeholder nodes like "Husband 1", "Son 1", "Daughter 1", etc. (these are valid placeholders)
+    mermaidNodes = mermaidNodes.filter((node) => {
+      const nodeIdLower = node.id.toLowerCase();
+      const nodeLabelLower = (node.label || '').toLowerCase();
+      
+      // Filter out marriage nodes (M1, M2, M3, etc.) - these shouldn't exist in pedigree charts
+      const isMarriageNode = /^M\d+$/i.test(node.id);
+      
+      // Filter out literal "marriage"/"married" text nodes
+      const isLiteralMarriage = nodeIdLower === 'marriage' || nodeIdLower === 'married' || 
+                                 nodeLabelLower === 'marriage' || nodeLabelLower === 'married';
+      
+      // Filter out generic relationship terms WITHOUT numbers (like "husband", "wife", "spouse" alone)
+      // But ALLOW numbered placeholders like "Husband 1", "Son 1", "Daughter 1", etc.
+      // Pattern: "husband", "wife", "spouse" without numbers, or "first husband" type patterns
+      const isGenericTermWithoutNumber = /^(husband|wife|spouse)$/i.test(nodeLabelLower) ||
+                                        /^(first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th)\s+(husband|wife|spouse)$/i.test(nodeLabelLower) ||
+                                        /^firsthusband|secondhusband|thirdhusband|firstwife|secondwife$/i.test(nodeIdLower);
+      
+      // Allow placeholder nodes like "Husband 1", "Wife 1", "Son 1", "Daughter 1", "Father 1", "Mother 1", "Parent 1", "Child 1"
+      const isPlaceholder = /^(husband|wife|son|daughter|father|mother|parent|child)\s*\d+$/i.test(nodeLabelLower) ||
+                           /^(husband|wife|son|daughter|father|mother|parent|child)\d+$/i.test(nodeIdLower);
+      
+      // Reject marriage-related nodes but keep placeholders
+      return !isMarriageNode && !isLiteralMarriage && (!isGenericTermWithoutNumber || isPlaceholder);
+    });
+
     // Ensure we have at least one node
     if (mermaidNodes.length === 0) {
       throw new Error('No nodes found in Mermaid code');
@@ -173,11 +244,19 @@ export async function mermaidToReactFlow(mermaidCode: string): Promise<{ nodes: 
       type: 'default',
     }));
 
-    // Remove duplicate edges
+    // Create a set of valid node IDs for edge filtering
+    const validNodeIds = new Set(mermaidNodes.map(n => n.id));
+    
+    // Remove duplicate edges and filter out edges referencing invalid nodes
     const edgeSet = new Set<string>();
     const rfEdges: Edge[] = [];
     
     mermaidEdges.forEach((edge, index) => {
+      // Skip edges that reference nodes that were filtered out (e.g., literal "marriage" nodes)
+      if (!validNodeIds.has(edge.start) || !validNodeIds.has(edge.end)) {
+        return;
+      }
+      
       const edgeKey = `${edge.start}-${edge.end}`;
       if (!edgeSet.has(edgeKey)) {
         edgeSet.add(edgeKey);
