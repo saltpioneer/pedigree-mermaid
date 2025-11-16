@@ -6,8 +6,8 @@ const nodeWidth = 150;
 const nodeHeight = 36;
 
 const Orientation = {
-  Vertical: 'vertical',
-  Horizontal: 'horizontal',
+  Vertical: 'vertical' as const,
+  Horizontal: 'horizontal' as const,
 };
 
 export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB' = 'TB'): Node[] {
@@ -76,6 +76,7 @@ export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
   }
 
   // Apply entitree-flex layout with settings from layout-element.txt
+  const orientationValue: 'vertical' | 'horizontal' = direction === 'TB' ? Orientation.Vertical : Orientation.Horizontal;
   const entitreeSettings = {
     clone: true,
     enableFlex: true,
@@ -86,7 +87,7 @@ export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
     nextBeforeSpacing: 100,
     nodeHeight,
     nodeWidth,
-    orientation: direction === 'TB' ? Orientation.Vertical : Orientation.Horizontal,
+    orientation: orientationValue,
     rootX: 0,
     rootY: 0,
     secondDegreeSpacing: 100,
@@ -102,7 +103,7 @@ export function applyLayout(nodes: Node[], edges: Edge[], direction: 'LR' | 'TB'
     const layoutedNodes = nodes.map((node) => {
       const entitreeNode = result.map[node.id];
       if (entitreeNode && entitreeNode.x !== undefined && entitreeNode.y !== undefined) {
-        const newNode = {
+        const newNode: Node = {
           ...node,
           position: {
             x: entitreeNode.x - nodeWidth / 2,

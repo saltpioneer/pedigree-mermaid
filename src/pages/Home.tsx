@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Heading, Inset, Flex, Separator, Tooltip, Kbd, Text } from '@radix-ui/themes';
+import { Button, Heading, Flex, Separator, Tooltip, Kbd, Text } from '@radix-ui/themes';
 import { InputPanel } from '../components/InputPanel';
 import { FlowRenderer } from '../components/FlowRenderer';
 import { NodeEditorSidebar } from '../components/NodeEditorSidebar';
